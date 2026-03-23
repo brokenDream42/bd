@@ -1,11 +1,8 @@
--- 1) Процедура вывода фразы "My procedure works"
 CREATE OR REPLACE PROCEDURE MY_PROCEDURE IS
 BEGIN
   DBMS_OUTPUT.PUT_LINE('My procedure works');
 END MY_PROCEDURE;
 /
-
--- 2) Процедура добавления нового отдела в S_DEPT
 CREATE OR REPLACE PROCEDURE INSERT_S_DEPT(
   p_id        IN NUMBER,
   p_name      IN VARCHAR2,
@@ -27,7 +24,7 @@ EXCEPTION
 END INSERT_S_DEPT;
 /
 
--- 3) Процедура обновления региона отдела (БЕЗ предварительного SELECT!)
+
 CREATE OR REPLACE PROCEDURE UPDATE_DEPT_REGION(
   p_id        IN NUMBER,
   p_region_id IN NUMBER
@@ -51,7 +48,7 @@ EXCEPTION
 END UPDATE_DEPT_REGION;
 /
 
--- 4) Процедура удаления отдела (БЕЗ предварительного SELECT!)
+
 CREATE OR REPLACE PROCEDURE DELETE_DEPT(p_id IN NUMBER) IS
 BEGIN
   DELETE FROM S_DEPT 
@@ -71,7 +68,7 @@ EXCEPTION
 END DELETE_DEPT;
 /
 
--- 5) Процедура расчёта
+
 CREATE OR REPLACE PROCEDURE CALC_DIV_ADD(
   p_a       IN NUMBER,
   p_b       IN NUMBER,
@@ -89,23 +86,19 @@ BEGIN
 END CALC_DIV_ADD;
 /
 
--- 6) Функция расчёта годового вознаграждения
+
 CREATE OR REPLACE FUNCTION ANNUAL_TOTAL_REWARD(
   p_salary    IN NUMBER,
   p_bonus_pct IN NUMBER
 ) RETURN NUMBER IS
 BEGIN
-  -- Требование: если зарплата не определена → вернуть 0
   IF p_salary IS NULL THEN
     RETURN 0;
   END IF;
-  
-  -- Требование: если премия не определена → вернуть только зарплату
   IF p_bonus_pct IS NULL THEN
     RETURN p_salary;
   END IF;
   
-  -- Преобразование процента в десятичную дробь (15 → 0.15)
   RETURN p_salary + (p_salary * (p_bonus_pct / 100));
 EXCEPTION
   WHEN OTHERS THEN
@@ -114,5 +107,24 @@ EXCEPTION
 END ANNUAL_TOTAL_REWARD;
 /
 
-exec MY_PROCEDURE;
-exec 
+
+/*
+-- Тестирование процедур
+EXEC MY_PROCEDURE;
+
+EXEC INSERT_S_DEPT(60, 'IT Dept', 1);
+
+EXEC UPDATE_DEPT_REGION(60, 2);
+
+EXEC DELETE_DEPT(60);
+
+DECLARE
+  v_result NUMBER;
+BEGIN
+  CALC_DIV_ADD(100, 5, v_result);
+  DBMS_OUTPUT.PUT_LINE('CALC_DIV_ADD результат: ' || v_result);
+END;
+/
+
+SELECT ANNUAL_TOTAL_REWARD(50000, 10) AS TOTAL FROM DUAL;
+*/

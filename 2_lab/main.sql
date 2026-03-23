@@ -1,6 +1,3 @@
--- ========================================
--- ПОДГОТОВКА: Безопасное удаление ограничения (ИСПРАВЛЕНО!)
--- ========================================
 DECLARE
   v_cnt NUMBER;
 BEGIN
@@ -22,9 +19,7 @@ BEGIN
 END;
 /
 
--- ========================================
--- СОЗДАНИЕ ТАБЛИЦ (уже исправлено: comments вместо comment)
--- ========================================
+
 DROP TABLE ZAKAZ PURGE;
 CREATE TABLE ZAKAZ (
     id NUMBER PRIMARY KEY,
@@ -32,7 +27,7 @@ CREATE TABLE ZAKAZ (
     order_id NUMBER,
     product_id NUMBER,
     quantity NUMBER,
-    comments VARCHAR2(100)  -- ← КРИТИЧЕСКИ ВАЖНО: не "comment"!
+    comments VARCHAR2(100)  -- ← КРИТИЧЕСКИ ВАЖНО
 );
 
 DROP SEQUENCE seq_zakaz;
@@ -51,9 +46,7 @@ CREATE TABLE STAG (
 DROP SEQUENCE seq_stag;
 CREATE SEQUENCE seq_stag START WITH 1;
 
--- ========================================
--- ЗАДАНИЕ 1: Процедура SET_COMM (без изменений — работает)
--- ========================================
+
 CREATE OR REPLACE PROCEDURE SET_COMM(p_emp_id IN NUMBER) IS
     v_total_sales NUMBER := 0;
     v_commission_pct NUMBER;
@@ -92,9 +85,7 @@ EXCEPTION
 END SET_COMM;
 /
 
--- ========================================
--- ЗАДАНИЕ 2: Процедура CUST_UPDATE (без изменений — работает)
--- ========================================
+
 CREATE OR REPLACE PROCEDURE CUST_UPDATE IS
     v_updated_count NUMBER := 0;
     v_credit_rating VARCHAR2(20);
@@ -123,9 +114,7 @@ EXCEPTION
 END CUST_UPDATE;
 /
 
--- ========================================
--- ЗАДАНИЕ 3: Функция расчёта стажа (без изменений — работает)
--- ========================================
+
 CREATE OR REPLACE FUNCTION CALC_EMPLOYMENT(p_start_date IN DATE, p_flag IN VARCHAR2) 
 RETURN VARCHAR2 IS
     v_years NUMBER;
@@ -146,9 +135,7 @@ EXCEPTION
 END CALC_EMPLOYMENT;
 /
 
--- ========================================
--- ЗАДАНИЕ 4: Процедура ZAKAZ_P (без изменений — работает)
--- ========================================
+
 CREATE OR REPLACE PROCEDURE ZAKAZ_P IS
     v_total_customers NUMBER;
     v_updated_customers NUMBER := 0;
@@ -193,9 +180,7 @@ EXCEPTION
 END ZAKAZ_P;
 /
 
--- ========================================
--- ЗАДАНИЕ 5: Процедура обработки сотрудников (ИСПРАВЛЕНО: отрицательные годы)
--- ========================================
+
 CREATE OR REPLACE PROCEDURE PROCESS_EMPLOYEES IS
     v_start_date DATE;
     v_years NUMBER;
@@ -212,7 +197,7 @@ BEGIN
     
     DBMS_OUTPUT.PUT_LINE('В таблицу STAG внесено ' || SQL%ROWCOUNT || ' сотрудников.');
     
-    -- Обработка комментариев (ИСПРАВЛЕНО: проверка на отрицательные годы)
+    -- Обработка комментариев 
     OPEN c_stag;
     LOOP
         FETCH c_stag INTO v_record;
@@ -225,7 +210,7 @@ BEGIN
             -- Чётные: стаж в годах
             UPDATE STAG SET commentar = 'стаж ' || v_years || ' лет' WHERE CURRENT OF c_stag;
         ELSE
-            -- Нечётные: время до 10-летия (с проверкой на отрицательное значение)
+            -- Нечётные: время до 10-летия 
             v_anniversary_date := ADD_MONTHS(v_start_date, 120);
             v_years_to_anniversary := TRUNC(MONTHS_BETWEEN(v_anniversary_date, SYSDATE) / 12);
             
@@ -256,7 +241,6 @@ END PROCESS_EMPLOYEES;
 
 SET SERVEROUTPUT ON SIZE 1000000;
 
--- ✅ ПРАВИЛЬНО: комментарии ВНЕ анонимного блока
 -- Тест 1: Процедура SET_COMM
 -- Служащий с заказами
 EXEC SET_COMM(11);
