@@ -201,7 +201,7 @@ END ZAKAZ_P;
 
 
 -- ЗАДАНИЕ 5: Процедура PROCESS_EMPLOYEES (обработка сотрудников)
--- БЕЗ ЯВНЫХ КУРСОРОВ - используем цикл FOR IN
+
 
 
 CREATE OR REPLACE PROCEDURE PROCESS_EMPLOYEES IS

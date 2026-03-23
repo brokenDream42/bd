@@ -66,8 +66,7 @@ BEGIN
     SELECT COUNT(*) INTO v_count FROM s_emp;
 
     IF p_n > v_count THEN
-        DBMS_OUTPUT.PUT_LINE('Предупреждение: Запрошено ' || p_n || 
-                             ', но в таблице всего ' || v_count || ' сотрудников.');
+        DBMS_OUTPUT.PUT_LINE('Предупреждение: Запрошено ' || p_n || ', но в таблице всего ' || v_count || ' сотрудников.');
     END IF;
 
     FOR r_emp IN c_emp LOOP
@@ -159,8 +158,7 @@ BEGIN
         WHERE MONTHS_BETWEEN(SYSDATE, e.start_date) > (p_years * 12)
         GROUP BY m.last_name
     ) LOOP
-        DBMS_OUTPUT.PUT_LINE('Менеджер: ' || r.manager_name || 
-                             ' | Подчиненные: ' || NVL(r.subordinates, 'Нет'));
+        DBMS_OUTPUT.PUT_LINE('Менеджер: ' || r.manager_name || ' | Подчиненные: ' || NVL(r.subordinates, 'Нет'));
     END LOOP;
 END SHOW_MANAGERS_SUBORDINATES;
 /
@@ -190,8 +188,7 @@ BEGIN
     SELECT COUNT(*) INTO v_total FROM s_emp;
     
     IF p_n > v_total THEN
-        DBMS_OUTPUT.PUT_LINE('Ошибка: В таблице всего ' || v_total || 
-                             ' сотрудников, а запрошено ' || p_n);
+        DBMS_OUTPUT.PUT_LINE('Ошибка: В таблице всего ' || v_total || ' сотрудников, а запрошено ' || p_n);
         RETURN;
     END IF;
 
