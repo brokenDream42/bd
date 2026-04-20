@@ -36,4 +36,8 @@ BEGIN
 END;
 /
 -- Тест:
+EXEC rank_products('28-AUG-92', '10-SEP-92', 'Y', 'Y', 'Y');
+
 EXEC rank_products('28-AUG-92', '10-SEP-92', 'Y', 'N', 'Y');
+
+EXEC rank_products('28-AUG-92', '10-SEP-92', 'Y', 'Y', 'N');
