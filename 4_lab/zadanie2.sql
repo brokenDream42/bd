@@ -9,8 +9,7 @@ BEGIN
               FROM s_customer c
               JOIN s_ord o ON c.id = o.customer_id
               JOIN s_item i ON o.id = i.ord_id
-              JOIN s_product p ON i.product_id = p.id
-              WHERE 1=1';
+              JOIN s_product p ON i.product_id = p.id';
 
     IF p_company_name IS NOT NULL THEN
         v_sql := v_sql || ' AND c.name = :1';
@@ -31,7 +30,12 @@ BEGIN
     END IF;
 END;
 /
--- Тест 
+-- Тест 1: только фирма
 VAR rc REFCURSOR;
 EXEC get_products_list(p_company_name => 'Unisports', p_cursor => :rc);
 PRINT rc;
+
+-- Тест 2: фирма + товар (ВСЁ В ОДНУ СТРОКУ!)
+VAR rf REFCURSOR;
+EXEC get_products_list(p_company_name => 'Unisports', p_product_name => 'Grand Prix Bicycle', p_cursor => :rf);
+PRINT rf;
