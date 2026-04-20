@@ -1,0 +1,167 @@
+S_CUSTOMER:
+"ID","NAME","PHONE","ADDRESS","CITY","STATE","COUNTRY","ZIP_CODE","CREDIT_RATING","SALES_REP_ID","REGION_ID","COMMENTS"
+201,"Unisports","55-2066101","72 Via Bahia","Sao Paolo","","Brazil","","EXCELLENT",11,2,"Customer usually orders large amounts and has a high order total. This is okay as long"
+202,"Simms Atheletics","8 1-20101","6741 Takashi Blvd.","Osaka","","Japan","","POOR",14,4,"Customer should always pay by cash until his credit rating improves."
+203,"Delhi Sports","91-10351","11368 Chanakya","New Delhi","","India","","GOOD",14,4,"Customer specializes in baseball equipment and is the largest retailer in India."
+204,"Womansport","1-206-104-0103","281 King Street","Seattle","","USA","98 101","EXCELLENT",11,1,""
+205,"Kams Sporting Goods","852-3692888","15 Henessey Road","Hong Kong","","","","EXCELLENT",21,4,""
+206,"Sportique","33-2257201","172 Rue de Rivoli","Cannes","","France","","EXCELLENT",11,5,"Customer specializes in Soccer. Likes to order accessories in bright colors."
+207,"Sweet Rock Sports","234-6036201","6 Saint Antoine","Lagos","","Nigeria","","GOOD",,3,""
+208,"Muench Sports","49-527454","435 Gruenestrasse","Stuttgart","","Germany","","GOOD",17,5,"Customer usually pays small orders by cash and large orders on credit."
+209,"Beisbol Si!","809-352689","792 Playa Del Mar","Sen Pedro de Macons","","Dominican Republic","","EXCELLENT",11,1,""
+210,"Futbol Sonora","52-404562","3 Via Saguaro","Nogales","","Mexico","","EXCELLENT",21,2,"Customer is difficult to reach by phone. Try mail."
+211,"Kuhns Sports","42-111292","7 Modrany","Prague","","Czechoslovakia","","EXCELLENT",,5,""
+212,"Hamada Sport","20-1209211","57A Corniche","Alexandria","","Egypt","","EXCELLENT",13,3,"Customer orders sea and water equipment."
+213,"Big Johns Sports Emporium","1-415-555-6281","4783 18th Street","San Fracisco","","USA","94117","EXCELLENT",11,1,"Customer has a dependable credit record."
+214,"Ojibvay Retail","1-716-555-7171","415 Main Street","Buffalo","","USA","14202","POOR",11,1,""
+215,"Sporta Russia","7-3892456","6000 Yekatamina","Saint Petersburg","","Russia","","POOR",,5,"This customer is very friendly, but has difficulty paying bills. Insist upon cash."
+S_DEPT:
+"ID","NAME","REGION_ID"
+10,"Finance",1
+31,"Sales",1
+32,"Sales",2
+33,"Sales",3
+34,"Sales",4
+35,"Sales",5
+41,"Operations",1
+42,"Operations",2
+43,"Operations",3
+44,"Operations",4
+45,"Operations",5
+50,"Administration",1
+11,"Finance",2
+61,"Accounting",2
+54,"Education",1
+S_EMP:
+"ID","LAST_NAME","FIRST_NAME","USERID","START_DATE","COMMENTS","MANAGER_ID","TITLE","DEPT_ID","SALARY","COMMISSION_PCT"
+1,"Velasquez","Carmen","cvelasqu",03/03/90,"",,"President",32,2550,
+2,"Ngao","LaDoris","lngao",08/03/90,"",1,"VP, Operations",54,1450,
+3,"Nagayamn","Midori","mnagayam",17/06/91,"",1,"VP, Sales",31,1400,
+4,"Quick-To-See","Mark","mquickto",07/04/90,"",1,"VP, Finance",10,1450,
+5,"Ropeburn","Audry","aropebur",04/03/90,"",1,"VP, Administration",50,1550,
+6,"Urguhart","Molly","murguhar",18/01/91,"",2,"Warehouse Manager",41,1200,
+7,"Menchu","Robertn","rmenchu",14/05/90,"",2,"Warehouse Manager",42,1250,
+8,"Biri","Ben","bbiri",07/04/90,"",2,"Warehouse Manager",43,1100,
+9,"Catchpole","Antoinette","acatchpo",09/02/92,"",2,"Warehouse Manager",44,1300,
+10,"Havel","Marta","mhavel",27/02/91,"",2,"Warehouse Manager",45,1307,
+11,"Magee","Colin","cmagee",14/05/90,"",3,"Sales Representative",31,1400,10
+13,"Sedeghi","Yasmin","ysedeghi",18/02/91,"",3,"Sales Representative",33,1515,10
+14,"Nguyen","Mai","mnguyen",22/01/92,"",3,"Sales Representative",34,1525,15
+16,"Maduro","Elena","emaduro",07/02/92,"",6,"Stock Clerk",41,1400,
+17,"Smith","George","gsmith",08/03/90,"",6,"Stock Clerk",41,940,
+18,"Nozaki","Akira","anozaki",09/02/91,"",7,"Stock Clerk",42,1200,
+19,"Patel","Vikram","vpatel",06/08/91,"",7,"Stock Clerk",42,795,
+20,"Newman","Chad","cnewman",21/07/91,"",8,"Stock Clerk",43,750,
+21,"Markarian","Alexander","amarkari",26/05/91,"",8,"Stock Clerk",43,850,
+22,"Chang","Eddie","echang",30/11/90,"",9,"Stock Clerk",44,800,
+23,"Patel","Radha","rpatel",17/10/90,"",9,"Stock Clerk",34,795,
+24,"Dancs","Bela","bdancs",17/03/91,"",10,"Stock Clerk",45,860,
+25,"Schwart,z","Sylvie","sschwart",09/05/91,"",10,"Stock Clerk",45,1100,
+S_ITEM:
+"ORD_ID","ITEM_ID","PRODUCT_ID","PRICE","QUANTITY","QUANTITY_SHIPPED"
+97,1,20106,9,1000,1000
+97,2,30321,1500,50,50
+98,1,40421,85,7,7
+99,1,20510,9,18,18
+99,2,20512,8,25,25
+99,3,50417,80,53,53
+99,4,50530,45,69,69
+100,1,10011,135,500,500
+100,2,10013,380,400,400
+100,3,50530,14,500,500
+100,4,50417,36,400,400
+100,5,30326,582,600,600
+100,6,30433,20,450,450
+100,7,41010,8,250,250
+102,1,30421,16,15,15
+102,2,40422,50,30,30
+102,3,41010,8,20,20
+102,4,32779,45,35,35
+102,6,50417,80,27,27
+102,7,50530,45,50,50
+102,4,20108,28,100,100
+102,2,20201,123,45,45
+103,4,30433,20,15,15
+103,2,32779,7,11,11
+104,4,20510,9,7,7
+104,2,20512,8,12,12
+104,3,30321,1669,19,19
+104,4,30421,16,35,35
+104,2,50419,80,13,13
+104,3,50532,47,28,28
+106,1,20108,28,46,46
+106,2,20201,123,21,21
+106,5,50418,75,98,98
+106,6,50419,80,27,27
+107,1,20106,11,50,50
+107,2,20108,28,22,22
+107,3,20201,115,130,130
+107,4,30321,1669,75,75
+107,5,30421,16,55,55
+108,1,20510,9,9,9
+108,2,20512,8,18,18
+108,3,30321,1669,85,85
+108,4,32779,7,60,60
+108,5,50418,60,57,57
+108,6,10012,35,50,50
+108,4,50536,45,42,42
+109,4,10011,140,150,150
+109,2,10012,175,600,600
+109,1,30326,582,1500,1500
+109,6,50536,60,50,50
+109,7,50418,75,43,43
+111,2,50536,50,23,23
+111,1,40421,65,27,27
+111,2,41080,35,29,29
+112,1,20106,11,50,50
+S_ORD:
+"ID","CUSTOMER_ID","DATE_ORDERED","DATE_SHIPPED","SALES_REP_ID","TOTAL","PAYMENT_TYPE","ORDER_FILLED"
+100,204,31/08/92,10/09/92,11,601100,"CREDIT",""
+102,206,01/09/92,08/09/92,11,8335,"CREDIT",""
+103,208,02/09/92,22/09/92,11,377,"CASH",""
+104,208,03/09/92,23/09/92,21,32430,"CREDIT",""
+106,210,07/09/92,15/09/92,21,15634,"CREDIT",""
+107,211,07/09/92,21/09/92,21,142171,"CREDIT",""
+108,212,07/09/92,10/09/92,13,149570,"CREDIT",""
+109,213,08/09/92,28/09/92,11,1020935,"CREDIT",""
+111,204,09/09/92,21/09/92,11,2770,"CASH",""
+97,201,28/08/92,17/09/92,11,84000,"CREDIT",""
+98,202,31/08/92,10/09/92,14,595,"CASH",""
+99,203,31/08/92,18/09/92,14,7707,"CREDIT",""
+112,210,31/08/92,10/09/92,21,550,"CREDIT",""
+S_PRODUCT:
+"ID","NAME","SHORT_DESC","LONGTEXT_ID","SUGGESTED_WHLSL_PRICE","WHLSL_UNITS"
+10012,"Ace Ski Boot","Intermediate ski boot",1002,200,""
+10013,"Pro Ski Boot","Advanced ski boot",1003,410,""
+20106,"Junior Soccer Ball","Junior soccer ball",,11,""
+10011,"Bunny Boot","Beginners ski boot",1001,150,""
+20108,"World Cup Soccer Ball","World cup soccer ball",,28,""
+20201,"World Cup Net","World cup net",,123,""
+20510,"Black Hawk Knee Pads","Knee pads, pair",,9,""
+20512,"Black Hawk Elbow Pads","Elbow pads, pair",,8,""
+30321,"Grand Prix Bicycle","Road bicycle",1291,1669,""
+30326,"Himalaya Bicycle","Mountain bicycle",1296,582,""
+30421,"Grand Prix Bicycle Tires","Road bicycle tires",,16,""
+30433,"New Air Pump","Tire pump",,20,""
+32779,"Slaker Water Bottle","Mater bottle",,7,""
+32861,"Safe-T Helmet","Bicycle helmet",1829,60,""
+40421,"Alexeyer Pro Lifting Bar","Straight bar",1381,65,""
+40422,"Pro Curling Bar","Curling bar",1382,50,""
+41010,"Prostar 10 Pound Weight","Ten pound weight",,8,""
+41020,"Prostar 20 Pound Weight","Twenty pound weight",,12,""
+41050,"Prostar 50 Pound Weight","Fifty pound weight",,25,""
+41080,"Prostar 80 Pound Weight","Eighty pound weight",,35,""
+50417,"Griffey Glove","Outfielders glove",80,77,""
+50418,"Alomar Glove","Infielders glove",1368,75,""
+50419,"Steinbach Glove","Catchers glove",1369,80,""
+50530,"Cabrera Bat","Thirty inch bat",1480,45,""
+50532,"Puckett Bat","Thirty-two inch bat",1482,47,""
+50536,"Winfield Bat","Thirty-six inch bat",1486,50,""
+S_REGION:
+"ID","NAME"
+1,"USA"
+2,"S.America"
+3,"Africa"
+4,"Aziya"
+5,"Europe"
+6,"Central America"
