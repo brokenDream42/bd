@@ -35,7 +35,7 @@ EXCEPTION
 END;
 /
 
--- Тесты задания 5: генерируем ошибки выполнения
+-- Тесты
 -- 1. Деление на ноль
 BEGIN DBMS_OUTPUT.PUT_LINE(1/0); END;
 /
@@ -53,7 +53,6 @@ INSERT INTO test_unique VALUES (1);
 BEGIN DBMS_OUTPUT.PUT_LINE(TO_NUMBER('ABC')); END;
 /
 
--- Проверяем лог ошибок
 SELECT TO_CHAR(timestamp, 'DD.MM.YYYY HH24:MI:SS') AS error_time,
        username, error_stack
 FROM error_log ORDER BY timestamp DESC;

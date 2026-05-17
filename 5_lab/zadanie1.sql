@@ -6,7 +6,7 @@ CREATE OR REPLACE TRIGGER trg_check_price
 BEFORE UPDATE OF price ON s_item
 FOR EACH ROW
 DECLARE
-  ex_price_limit EXCEPTION;  -- Объявляем исключение
+  ex_price_limit EXCEPTION;  
 BEGIN
   -- Проверяем условие: изменение более 30%
   IF :OLD.price IS NOT NULL AND :OLD.price <> 0 THEN
@@ -34,4 +34,4 @@ UPDATE s_item SET price = 10.8 WHERE ord_id = 97 AND item_id = 1;
 
 
 -- Запрещённое изменение (+35%): 9 - 12.2
-UPDATE s_item SET price = 12.2 WHERE ord_id = 97 AND item_id = 1;
+UPDATE s_item SET price = 100 WHERE ord_id = 97 AND item_id = 1;

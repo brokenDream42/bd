@@ -53,17 +53,14 @@ BEGIN
 END;
 /
 
--- Тесты задания 2
--- 1. INSERT
+-- Тесты 
 INSERT INTO s_emp (id, last_name, first_name, userid, start_date, title, dept_id, salary, commission_pct)
 VALUES (999, 'Testov', 'Ivan', 'itestov', SYSDATE, 'Tester', 31, 1500, 10);
 COMMIT;
 
--- 2. UPDATE
 UPDATE s_emp SET salary = 1800 WHERE id = 999;
 COMMIT;
 
--- 3. DELETE
 DELETE FROM s_emp WHERE id = 999;
 COMMIT;
 
