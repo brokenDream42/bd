@@ -2,7 +2,7 @@
 -- Часть 3: Триггеры автоматического логирования
 -- Для таблиц: SELLERS, CUSTOMERS, SALES
 -- Тип триггера: AFTER INSERT OR UPDATE OR DELETE
--- (AFTER гарантирует, что GENERATED IDENTITY уже заполнено при INSERT)
+-- Формат данных: KEY=VALUE|KEY2=VALUE2 (как в 5-й лабе)
 -- ============================================================
 
 PROMPT >>> Создание триггера для SELLERS...
@@ -11,44 +11,31 @@ CREATE OR REPLACE TRIGGER trg_sellers_audit
     AFTER INSERT OR UPDATE OR DELETE ON sellers
     FOR EACH ROW
 DECLARE
-    v_old_data CLOB;
-    v_new_data CLOB;
+    v_old VARCHAR2(4000);
+    v_new VARCHAR2(4000);
 BEGIN
+    IF NOT INSERTING THEN
+        v_old := 'ID='||:OLD.id||
+            '|FULL_NAME='||:OLD.full_name||
+            '|RETAIL_OUTLET_ID='||NVL(TO_CHAR(:OLD.retail_outlet_id),'NULL')||
+            '|SALARY_RATE='||NVL(TO_CHAR(:OLD.salary_rate),'NULL');
+    END IF;
+    IF NOT DELETING THEN
+        v_new := 'ID='||:NEW.id||
+            '|FULL_NAME='||:NEW.full_name||
+            '|RETAIL_OUTLET_ID='||NVL(TO_CHAR(:NEW.retail_outlet_id),'NULL')||
+            '|SALARY_RATE='||NVL(TO_CHAR(:NEW.salary_rate),'NULL');
+    END IF;
+
     IF INSERTING THEN
-        v_new_data := JSON_OBJECT(
-            'id'               VALUE :NEW.id,
-            'full_name'        VALUE :NEW.full_name,
-            'retail_outlet_id' VALUE :NEW.retail_outlet_id,
-            'salary_rate'      VALUE :NEW.salary_rate
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('SELLERS', 'INSERT', :NEW.id, NULL, v_new_data);
-
+        VALUES ('SELLERS', 'INSERT', :NEW.id, NULL, v_new);
     ELSIF UPDATING THEN
-        v_old_data := JSON_OBJECT(
-            'id'               VALUE :OLD.id,
-            'full_name'        VALUE :OLD.full_name,
-            'retail_outlet_id' VALUE :OLD.retail_outlet_id,
-            'salary_rate'      VALUE :OLD.salary_rate
-        );
-        v_new_data := JSON_OBJECT(
-            'id'               VALUE :NEW.id,
-            'full_name'        VALUE :NEW.full_name,
-            'retail_outlet_id' VALUE :NEW.retail_outlet_id,
-            'salary_rate'      VALUE :NEW.salary_rate
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('SELLERS', 'UPDATE', :NEW.id, v_old_data, v_new_data);
-
+        VALUES ('SELLERS', 'UPDATE', :NEW.id, v_old, v_new);
     ELSIF DELETING THEN
-        v_old_data := JSON_OBJECT(
-            'id'               VALUE :OLD.id,
-            'full_name'        VALUE :OLD.full_name,
-            'retail_outlet_id' VALUE :OLD.retail_outlet_id,
-            'salary_rate'      VALUE :OLD.salary_rate
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('SELLERS', 'DELETE', :OLD.id, v_old_data, NULL);
+        VALUES ('SELLERS', 'DELETE', :OLD.id, v_old, NULL);
     END IF;
 END;
 /
@@ -59,40 +46,29 @@ CREATE OR REPLACE TRIGGER trg_customers_audit
     AFTER INSERT OR UPDATE OR DELETE ON customers
     FOR EACH ROW
 DECLARE
-    v_old_data CLOB;
-    v_new_data CLOB;
+    v_old VARCHAR2(4000);
+    v_new VARCHAR2(4000);
 BEGIN
+    IF NOT INSERTING THEN
+        v_old := 'ID='||:OLD.id||
+            '|FULL_NAME='||:OLD.full_name||
+            '|CHARACTERISTICS='||NVL(:OLD.characteristics,'NULL');
+    END IF;
+    IF NOT DELETING THEN
+        v_new := 'ID='||:NEW.id||
+            '|FULL_NAME='||:NEW.full_name||
+            '|CHARACTERISTICS='||NVL(:NEW.characteristics,'NULL');
+    END IF;
+
     IF INSERTING THEN
-        v_new_data := JSON_OBJECT(
-            'id'               VALUE :NEW.id,
-            'full_name'        VALUE :NEW.full_name,
-            'characteristics'  VALUE :NEW.characteristics
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('CUSTOMERS', 'INSERT', :NEW.id, NULL, v_new_data);
-
+        VALUES ('CUSTOMERS', 'INSERT', :NEW.id, NULL, v_new);
     ELSIF UPDATING THEN
-        v_old_data := JSON_OBJECT(
-            'id'               VALUE :OLD.id,
-            'full_name'        VALUE :OLD.full_name,
-            'characteristics'  VALUE :OLD.characteristics
-        );
-        v_new_data := JSON_OBJECT(
-            'id'               VALUE :NEW.id,
-            'full_name'        VALUE :NEW.full_name,
-            'characteristics'  VALUE :NEW.characteristics
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('CUSTOMERS', 'UPDATE', :NEW.id, v_old_data, v_new_data);
-
+        VALUES ('CUSTOMERS', 'UPDATE', :NEW.id, v_old, v_new);
     ELSIF DELETING THEN
-        v_old_data := JSON_OBJECT(
-            'id'               VALUE :OLD.id,
-            'full_name'        VALUE :OLD.full_name,
-            'characteristics'  VALUE :OLD.characteristics
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('CUSTOMERS', 'DELETE', :OLD.id, v_old_data, NULL);
+        VALUES ('CUSTOMERS', 'DELETE', :OLD.id, v_old, NULL);
     END IF;
 END;
 /
@@ -103,60 +79,39 @@ CREATE OR REPLACE TRIGGER trg_sales_audit
     AFTER INSERT OR UPDATE OR DELETE ON sales
     FOR EACH ROW
 DECLARE
-    v_old_data CLOB;
-    v_new_data CLOB;
+    v_old VARCHAR2(4000);
+    v_new VARCHAR2(4000);
 BEGIN
+    IF NOT INSERTING THEN
+        v_old := 'ID='||:OLD.id||
+            '|DATE='||NVL(TO_CHAR(:OLD."date",'DD.MM.YYYY HH24:MI:SS'),'NULL')||
+            '|PRODUCT_ID='||NVL(TO_CHAR(:OLD.product_id),'NULL')||
+            '|QUANTITY='||NVL(TO_CHAR(:OLD.quantity),'NULL')||
+            '|SALE_PRICE='||NVL(TO_CHAR(:OLD.sale_price),'NULL')||
+            '|SELLER_ID='||NVL(TO_CHAR(:OLD.seller_id),'NULL')||
+            '|RETAIL_OUTLET_ID='||NVL(TO_CHAR(:OLD.retail_outlet_id),'NULL')||
+            '|CUSTOMER_ID='||NVL(TO_CHAR(:OLD.customer_id),'NULL');
+    END IF;
+    IF NOT DELETING THEN
+        v_new := 'ID='||:NEW.id||
+            '|DATE='||NVL(TO_CHAR(:NEW."date",'DD.MM.YYYY HH24:MI:SS'),'NULL')||
+            '|PRODUCT_ID='||NVL(TO_CHAR(:NEW.product_id),'NULL')||
+            '|QUANTITY='||NVL(TO_CHAR(:NEW.quantity),'NULL')||
+            '|SALE_PRICE='||NVL(TO_CHAR(:NEW.sale_price),'NULL')||
+            '|SELLER_ID='||NVL(TO_CHAR(:NEW.seller_id),'NULL')||
+            '|RETAIL_OUTLET_ID='||NVL(TO_CHAR(:NEW.retail_outlet_id),'NULL')||
+            '|CUSTOMER_ID='||NVL(TO_CHAR(:NEW.customer_id),'NULL');
+    END IF;
+
     IF INSERTING THEN
-        v_new_data := JSON_OBJECT(
-            'id'               VALUE :NEW.id,
-            'date'             VALUE :NEW."date",
-            'product_id'       VALUE :NEW.product_id,
-            'quantity'         VALUE :NEW.quantity,
-            'sale_price'       VALUE :NEW.sale_price,
-            'seller_id'        VALUE :NEW.seller_id,
-            'retail_outlet_id' VALUE :NEW.retail_outlet_id,
-            'customer_id'      VALUE :NEW.customer_id
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('SALES', 'INSERT', :NEW.id, NULL, v_new_data);
-
+        VALUES ('SALES', 'INSERT', :NEW.id, NULL, v_new);
     ELSIF UPDATING THEN
-        v_old_data := JSON_OBJECT(
-            'id'               VALUE :OLD.id,
-            'date'             VALUE :OLD."date",
-            'product_id'       VALUE :OLD.product_id,
-            'quantity'         VALUE :OLD.quantity,
-            'sale_price'       VALUE :OLD.sale_price,
-            'seller_id'        VALUE :OLD.seller_id,
-            'retail_outlet_id' VALUE :OLD.retail_outlet_id,
-            'customer_id'      VALUE :OLD.customer_id
-        );
-        v_new_data := JSON_OBJECT(
-            'id'               VALUE :NEW.id,
-            'date'             VALUE :NEW."date",
-            'product_id'       VALUE :NEW.product_id,
-            'quantity'         VALUE :NEW.quantity,
-            'sale_price'       VALUE :NEW.sale_price,
-            'seller_id'        VALUE :NEW.seller_id,
-            'retail_outlet_id' VALUE :NEW.retail_outlet_id,
-            'customer_id'      VALUE :NEW.customer_id
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('SALES', 'UPDATE', :NEW.id, v_old_data, v_new_data);
-
+        VALUES ('SALES', 'UPDATE', :NEW.id, v_old, v_new);
     ELSIF DELETING THEN
-        v_old_data := JSON_OBJECT(
-            'id'               VALUE :OLD.id,
-            'date'             VALUE :OLD."date",
-            'product_id'       VALUE :OLD.product_id,
-            'quantity'         VALUE :OLD.quantity,
-            'sale_price'       VALUE :OLD.sale_price,
-            'seller_id'        VALUE :OLD.seller_id,
-            'retail_outlet_id' VALUE :OLD.retail_outlet_id,
-            'customer_id'      VALUE :OLD.customer_id
-        );
         INSERT INTO audit_log (table_name, operation, record_pk, old_data, new_data)
-        VALUES ('SALES', 'DELETE', :OLD.id, v_old_data, NULL);
+        VALUES ('SALES', 'DELETE', :OLD.id, v_old, NULL);
     END IF;
 END;
 /

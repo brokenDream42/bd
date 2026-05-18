@@ -3,11 +3,15 @@
 """
 GUI для семестровой работы
 "Учет товарооборота розничных торговых предприятий"
+
+Технологии: Python 3, tkinter (ttk), cx_Oracle
 """
 
+
 import tkinter as tk
-from tkinter import ttk, messagebox
-import traceback
+from tkinter import ttk, messagebox, scrolledtext
+from datetime import datetime
+import os
 
 try:
     import cx_Oracle
@@ -35,29 +39,26 @@ COLORS = {
 FONT = ("Segoe UI", 10)
 FONT_BOLD = ("Segoe UI", 10, "bold")
 FONT_HEADER = ("Segoe UI", 12, "bold")
+FONT_TITLE = ("Segoe UI", 14, "bold")
 
 
 # ============================================================
 # Класс для работы с БД
 # ============================================================
 class Database:
-    """Обертка для подключения и выполнения запросов к Oracle."""
-
     def __init__(self):
-        """Инициализирует пустое соединение."""
         self.conn = None
         self.cursor = None
 
     def connect(self, user, password, host, port, service):
-        """Устанавливает соединение с БД по заданным параметрам."""
         if cx_Oracle is None:
-            raise RuntimeError("Библиотека cx_Oracle/oracledb не установлена.")
+            raise RuntimeError("Библиотека cx_Oracle не установлена. Установите: pip install cx_Oracle")
         dsn = cx_Oracle.makedsn(host, port, service_name=service)
         self.conn = cx_Oracle.connect(user=user, password=password, dsn=dsn)
         self.cursor = self.conn.cursor()
+        return True
 
     def disconnect(self):
-        """Закрывает курсор и соединение."""
         if self.cursor:
             self.cursor.close()
         if self.conn:
@@ -66,49 +67,44 @@ class Database:
         self.conn = None
 
     def is_connected(self):
-        """Возвращает True, если соединение активно."""
         return self.conn is not None
 
     def fetchall(self, sql, params=None):
-        """Выполняет SELECT и возвращает (колонки, строки)."""
         self.cursor.execute(sql, params or {})
         cols = [desc[0] for desc in self.cursor.description]
         rows = self.cursor.fetchall()
         return cols, rows
 
     def execute(self, sql, params=None):
-        """Выполняет INSERT/UPDATE/DELETE и коммитит."""
         self.cursor.execute(sql, params or {})
         self.conn.commit()
 
     def call_proc(self, proc_name, params):
-        """Вызывает хранимую процедуру через анонимный блок."""
+        """Вызов хранимой процедуры через CALL"""
         placeholders = ",".join([f":{i+1}" for i in range(len(params))])
         self.cursor.execute(f"BEGIN {proc_name}({placeholders}); END;", params)
         self.conn.commit()
 
     def call_func(self, func_name, return_type, params):
-        """Вызывает хранимую функцию и возвращает результат."""
-        return self.cursor.callfunc(func_name, return_type, params)
+        """Вызов функции"""
+        result = self.cursor.callfunc(func_name, return_type, params)
+        return result
 
 
 # ============================================================
-# Вспомогательные функции для таблиц
+# Вспомогательные функции
 # ============================================================
 def style_tree(tree):
-    """Настраивает чередование цветов строк в Treeview."""
     tree.tag_configure("odd", background="#fafafa")
     tree.tag_configure("even", background="#ffffff")
 
 
 def clear_tree(tree):
-    """Удаляет все строки из Treeview."""
     for item in tree.get_children():
         tree.delete(item)
 
 
 def populate_tree(tree, cols, rows):
-    """Заполняет Treeview колонками и данными."""
     clear_tree(tree)
     tree["columns"] = cols
     tree.heading("#0", text="#")
@@ -122,20 +118,19 @@ def populate_tree(tree, cols, rows):
 
 
 # ============================================================
-# Универсальная вкладка для работы с таблицей
+# Универсальная вкладка CRUD
 # ============================================================
-class EntityTab:
-    """Универсальная вкладка для работы с таблицей (просмотр, добавление, изменение, удаление)."""
-
-    def __init__(self, parent, db, title, table, pk_column, form_fields):
-        """Создает интерфейс вкладки: таблица + форма + кнопки."""
+class CRUDTab:
+    def __init__(self, parent, db, title, table, columns, pk_column, form_fields, id_field_visible=False):
         self.db = db
         self.table = table
         self.pk_column = pk_column
-        self.form_fields = form_fields
-        self.current_id = None
+        self.columns = columns
+        self.form_fields = form_fields  # список словарей с описанием полей
+        self.id_field_visible = id_field_visible
 
         self.frame = ttk.Frame(parent)
+        self.frame.pack(fill="both", expand=True)
 
         # -- Заголовок --
         lbl = tk.Label(self.frame, text=title, font=FONT_HEADER, bg=COLORS["frame_bg"], fg=COLORS["accent"])
@@ -161,7 +156,7 @@ class EntityTab:
         style_tree(self.tree)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
-        btn_refresh = tk.Button(table_frame, text="Обновить", command=self.load_data,
+        btn_refresh = tk.Button(table_frame, text="🔄 Обновить", command=self.load_data,
                                 bg=COLORS["primary"], fg="white", font=FONT_BOLD, relief="flat", cursor="hand2")
         btn_refresh.grid(row=2, column=0, columnspan=2, sticky="ew", padx=5, pady=5)
 
@@ -170,9 +165,11 @@ class EntityTab:
         form_frame.pack(fill="x", padx=10, pady=5)
 
         self.entries = {}
-        self.lbl_id = tk.Label(form_frame, text="Выбран ID: (нет)", bg=COLORS["frame_bg"],
-                               fg=COLORS["primary"], font=FONT_BOLD)
-        self.lbl_id.grid(row=0, column=0, columnspan=6, sticky="e", padx=10, pady=(5, 0))
+        self.current_id = None
+        if not self.id_field_visible:
+            self.lbl_id = tk.Label(form_frame, text="Выбран ID: (нет)", bg=COLORS["frame_bg"],
+                                   fg=COLORS["primary"], font=FONT_BOLD)
+            self.lbl_id.grid(row=0, column=0, columnspan=6, sticky="e", padx=10, pady=(5, 0))
 
         for i, field in enumerate(form_fields):
             row = 1 + (i // 3)
@@ -189,26 +186,24 @@ class EntityTab:
         btn_row = 2 + (len(form_fields) - 1) // 3
         btn_frame.grid(row=btn_row, column=0, columnspan=6, pady=(10, 5))
 
-        tk.Button(btn_frame, text="Добавить", command=self.add,
+        tk.Button(btn_frame, text="➕ Добавить", command=self.add,
                   bg=COLORS["success"], fg="white", font=FONT_BOLD, relief="flat", width=14, cursor="hand2").pack(side="left", padx=5)
-        tk.Button(btn_frame, text="Изменить", command=self.update,
+        tk.Button(btn_frame, text="💾 Изменить", command=self.update,
                   bg=COLORS["warning"], fg="white", font=FONT_BOLD, relief="flat", width=14, cursor="hand2").pack(side="left", padx=5)
-        tk.Button(btn_frame, text="Удалить", command=self.delete,
+        tk.Button(btn_frame, text="❌ Удалить", command=self.delete,
                   bg=COLORS["danger"], fg="white", font=FONT_BOLD, relief="flat", width=14, cursor="hand2").pack(side="left", padx=5)
-        tk.Button(btn_frame, text="Очистить", command=self.clear_form,
+        tk.Button(btn_frame, text="🧹 Очистить", command=self.clear_form,
                   bg=COLORS["light_text"], fg="white", font=FONT_BOLD, relief="flat", width=14, cursor="hand2").pack(side="left", padx=5)
 
         self.load_data()
 
     def quote_col(self, col):
-        """Экранирует зарезервированные слова Oracle двойными кавычками."""
-        reserved = {"DATE", "SELECT", "INSERT", "UPDATE", "DELETE", "ORDER", "GROUP", "FROM", "WHERE"}
+        reserved = {'DATE', 'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'ORDER', 'GROUP', 'FROM', 'WHERE'}
         if col.upper() in reserved:
             return f'"{col.lower()}"'
         return col
 
     def load_data(self):
-        """Загружает данные из таблицы в Treeview."""
         if not self.db.is_connected():
             return
         try:
@@ -217,26 +212,25 @@ class EntityTab:
             sql = f"SELECT {', '.join(quoted_cols)} FROM {self.table} ORDER BY {self.quote_col(self.pk_column)}"
             _, rows = self.db.fetchall(sql)
             populate_tree(self.tree, cols, rows)
-        except Exception:
-            messagebox.showerror("Ошибка", traceback.format_exc())
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
     def on_select(self, event):
-        """При выборе строки в таблице заполняет поля формы."""
         sel = self.tree.selection()
         if not sel:
             return
         values = self.tree.item(sel[0], "values")
         self.current_id = values[0]
-        self.lbl_id.config(text=f"Выбран ID: {self.current_id}")
+        if hasattr(self, 'lbl_id'):
+            self.lbl_id.config(text=f"Выбран ID: {self.current_id}")
         for i, field in enumerate(self.form_fields):
             ent = self.entries[field["col"]]
             ent.config(state="normal")
             ent.delete(0, tk.END)
-            if values[i]:
+            if values[i] is not None:
                 ent.insert(0, str(values[i]))
 
     def get_form_values(self):
-        """Считывает значения из полей формы и приводит типы."""
         result = {}
         for field in self.form_fields:
             val = self.entries[field["col"]].get().strip()
@@ -249,20 +243,20 @@ class EntityTab:
         return result
 
     def clear_form(self):
-        """Очищает форму и сбрасывает выбранный ID."""
         self.current_id = None
-        self.lbl_id.config(text="Выбран ID: (нет)")
+        if hasattr(self, 'lbl_id'):
+            self.lbl_id.config(text="Выбран ID: (нет)")
         for field in self.form_fields:
             ent = self.entries[field["col"]]
             ent.config(state="normal")
             ent.delete(0, tk.END)
 
     def add(self):
-        """Добавляет новую запись в таблицу."""
         if not self.db.is_connected():
             return
         try:
             vals = self.get_form_values()
+            # Убираем PK из вставки (identity)
             cols = [f["col"] for f in self.form_fields if f["col"] != self.pk_column]
             placeholders = ",".join([f":{c}" for c in cols])
             quoted_cols = [self.quote_col(c) for c in cols]
@@ -272,70 +266,57 @@ class EntityTab:
             messagebox.showinfo("Успех", "Запись добавлена")
             self.load_data()
             self.clear_form()
-        except Exception:
-            messagebox.showerror("Ошибка", traceback.format_exc())
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
     def update(self):
-        """Обновляет выбранную запись."""
         if not self.db.is_connected():
             return
         try:
             vals = self.get_form_values()
-            pk_val = self.current_id
+            pk_val = vals[self.pk_column]
             if pk_val is None or str(pk_val).strip() == "":
                 messagebox.showwarning("Внимание", "Выберите запись для изменения")
-                return
-            if str(vals.get(self.pk_column, "")).strip() != str(pk_val).strip():
-                messagebox.showwarning("Внимание", "ID изменён вручную. Для смены ID удалите запись и создайте новую.")
                 return
             cols = [f["col"] for f in self.form_fields if f["col"] != self.pk_column]
             set_clause = ", ".join([f"{self.quote_col(c)} = :{c}" for c in cols])
             sql = f"UPDATE {self.table} SET {set_clause} WHERE {self.quote_col(self.pk_column)} = :pk"
             params = {c: vals[c] for c in cols}
-            try:
-                params["pk"] = int(pk_val)
-            except (ValueError, TypeError):
-                params["pk"] = pk_val
+            params["pk"] = pk_val
             self.db.execute(sql, params)
             messagebox.showinfo("Успех", "Запись обновлена")
             self.load_data()
-        except Exception:
-            messagebox.showerror("Ошибка", traceback.format_exc())
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
     def delete(self):
-        """Удаляет выбранную запись."""
         if not self.db.is_connected():
             return
         try:
-            pk_val = self.current_id
+            vals = self.get_form_values()
+            pk_val = vals[self.pk_column]
             if pk_val is None or str(pk_val).strip() == "":
                 messagebox.showwarning("Внимание", "Выберите запись для удаления")
                 return
             if not messagebox.askyesno("Подтверждение", f"Удалить запись с ID={pk_val}?"):
                 return
-            try:
-                pk_param = int(pk_val)
-            except (ValueError, TypeError):
-                pk_param = pk_val
-            sql = f"DELETE FROM {self.table} WHERE {self.quote_col(self.pk_column)} = :pk"
-            self.db.execute(sql, {"pk": pk_param})
+            sql = f"DELETE FROM {self.table} WHERE {self.pk_column} = :pk"
+            self.db.execute(sql, {"pk": pk_val})
             messagebox.showinfo("Успех", "Запись удалена")
             self.load_data()
             self.clear_form()
-        except Exception:
-            messagebox.showerror("Ошибка", traceback.format_exc())
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
 
 # ============================================================
 # Вкладка аудита (Лог)
 # ============================================================
 class LogTab:
-    """Вкладка просмотра журнала аудита с фильтрами и откатом."""
-
     def __init__(self, parent, db):
-        """Создает интерфейс вкладки аудита."""
         self.db = db
         self.frame = ttk.Frame(parent)
+        self.frame.pack(fill="both", expand=True)
 
         lbl = tk.Label(self.frame, text="Журнал аудита", font=FONT_HEADER, bg=COLORS["frame_bg"], fg=COLORS["accent"])
         lbl.pack(anchor="w", padx=10, pady=(10, 5))
@@ -347,6 +328,7 @@ class LogTab:
         tk.Label(filt_frame, text="С:", bg=COLORS["frame_bg"], font=FONT).grid(row=0, column=0, padx=5, pady=5, sticky="e")
         self.ent_from = ttk.Entry(filt_frame, width=20)
         self.ent_from.grid(row=0, column=1, padx=5, pady=5)
+        self.ent_from.insert(0, "")
 
         tk.Label(filt_frame, text="По:", bg=COLORS["frame_bg"], font=FONT).grid(row=0, column=2, padx=5, pady=5, sticky="e")
         self.ent_to = ttk.Entry(filt_frame, width=20)
@@ -362,7 +344,7 @@ class LogTab:
         self.cmb_table.grid(row=0, column=7, padx=5, pady=5)
         self.cmb_table.set("")
 
-        btn_search = tk.Button(filt_frame, text="Показать", command=self.load_log,
+        btn_search = tk.Button(filt_frame, text="🔍 Показать", command=self.load_log,
                                bg=COLORS["primary"], fg="white", font=FONT_BOLD, relief="flat", cursor="hand2")
         btn_search.grid(row=0, column=8, padx=10, pady=5)
 
@@ -383,14 +365,13 @@ class LogTab:
         style_tree(self.tree)
 
         # -- Кнопка отката --
-        btn_rollback = tk.Button(self.frame, text="Откатить выбранную операцию", command=self.rollback,
+        btn_rollback = tk.Button(self.frame, text="↩️ Откатить выбранную операцию", command=self.rollback,
                                  bg=COLORS["danger"], fg="white", font=FONT_BOLD, relief="flat", cursor="hand2")
         btn_rollback.pack(fill="x", padx=10, pady=5)
 
         self.load_log()
 
     def load_log(self):
-        """Загружает записи аудита с учетом фильтров."""
         if not self.db.is_connected():
             return
         try:
@@ -420,11 +401,10 @@ class LogTab:
 
             _, rows = self.db.fetchall(sql, params)
             populate_tree(self.tree, ["ID", "TABLE", "OP", "TIMESTAMP", "PK", "USER"], rows)
-        except Exception:
-            messagebox.showerror("Ошибка", traceback.format_exc())
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
     def rollback(self):
-        """Откатывает выбранную операцию из журнала аудита."""
         if not self.db.is_connected():
             return
         sel = self.tree.selection()
@@ -439,20 +419,18 @@ class LogTab:
             self.db.call_proc("pkg_audit.rollback_operation", [log_id])
             messagebox.showinfo("Успех", f"Операция лога ID={log_id} откатана")
             self.load_log()
-        except Exception:
-            messagebox.showerror("Ошибка", traceback.format_exc())
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
 
 # ============================================================
 # Вкладка отчета
 # ============================================================
 class ReportTab:
-    """Вкладка формирования сводного отчета по аудиту."""
-
     def __init__(self, parent, db):
-        """Создает интерфейс вкладки отчета."""
         self.db = db
         self.frame = ttk.Frame(parent)
+        self.frame.pack(fill="both", expand=True)
 
         lbl = tk.Label(self.frame, text="Сводный отчет по аудиту", font=FONT_HEADER, bg=COLORS["frame_bg"], fg=COLORS["accent"])
         lbl.pack(anchor="w", padx=10, pady=(10, 5))
@@ -472,7 +450,7 @@ class ReportTab:
         tk.Checkbutton(flags_frame, text="Флаг 3: по количеству выполнений", variable=self.var_f3,
                        bg=COLORS["frame_bg"], font=FONT, selectcolor=COLORS["primary"]).pack(anchor="w", padx=10, pady=2)
 
-        btn_gen = tk.Button(flags_frame, text="Сформировать отчет", command=self.generate,
+        btn_gen = tk.Button(flags_frame, text="📊 Сформировать отчет", command=self.generate,
                             bg=COLORS["success"], fg="white", font=FONT_BOLD, relief="flat", cursor="hand2")
         btn_gen.pack(anchor="w", padx=10, pady=8)
 
@@ -493,7 +471,6 @@ class ReportTab:
         style_tree(self.tree)
 
     def generate(self):
-        """Формирует сводный отчет через функцию пакета pkg_audit."""
         if not self.db.is_connected():
             return
         try:
@@ -503,21 +480,18 @@ class ReportTab:
             cols = [desc[0] for desc in cur.description]
             populate_tree(self.tree, cols, rows)
             cur.close()
-        except Exception:
-            messagebox.showerror("Ошибка", traceback.format_exc())
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
 
 # ============================================================
 # Главное окно приложения
 # ============================================================
 class App:
-    """Главное окно приложения."""
-
     def __init__(self, root):
-        """Инициализирует окно, стили и интерфейс."""
         self.root = root
         self.root.title("Учет товарооборота — Семестровая работа")
-        self.root.geometry("1100x1100")
+        self.root.geometry("1100x750")
         self.root.configure(bg=COLORS["bg"])
         self.db = Database()
 
@@ -525,7 +499,6 @@ class App:
         self.build_ui()
 
     def setup_styles(self):
-        """Настраивает ttk стили для единого визуального оформления."""
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("TNotebook", background=COLORS["bg"], tabmargins=[2, 5, 2, 0])
@@ -541,7 +514,6 @@ class App:
         style.map("Treeview", background=[("selected", COLORS["primary"])])
 
     def build_ui(self):
-        """Собирает интерфейс: панель подключения и вкладки."""
         # -- Панель подключения --
         conn_frame = tk.LabelFrame(self.root, text=" Подключение к Oracle ", bg=COLORS["frame_bg"],
                                    fg=COLORS["accent"], font=FONT_BOLD)
@@ -563,11 +535,11 @@ class App:
             ent = ttk.Entry(conn_frame, textvariable=var, width=18, show=show)
             ent.grid(row=0, column=i * 2 + 1, padx=5, pady=8, sticky="w")
 
-        self.btn_connect = tk.Button(conn_frame, text="Подключиться", command=self.connect_db,
+        self.btn_connect = tk.Button(conn_frame, text="🔌 Подключиться", command=self.connect_db,
                                      bg=COLORS["success"], fg="white", font=FONT_BOLD, relief="flat", cursor="hand2")
         self.btn_connect.grid(row=0, column=10, padx=15, pady=8)
 
-        self.lbl_status = tk.Label(conn_frame, text="Нет подключения", bg=COLORS["frame_bg"],
+        self.lbl_status = tk.Label(conn_frame, text="❌ Нет подключения", bg=COLORS["frame_bg"],
                                    fg=COLORS["danger"], font=FONT_BOLD)
         self.lbl_status.grid(row=0, column=11, padx=10, pady=8)
 
@@ -575,41 +547,47 @@ class App:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
-        self.tab_sellers = EntityTab(self.notebook, self.db, "Продавцы (SELLERS)", "sellers", "ID", [
-            {"col": "ID", "label": "ID", "type": "int"},
-            {"col": "FULL_NAME", "label": "ФИО"},
-            {"col": "RETAIL_OUTLET_ID", "label": "Точка", "type": "int"},
-            {"col": "SALARY_RATE", "label": "Ставка", "type": "number"}
-        ])
-        self.notebook.add(self.tab_sellers.frame, text="Продавцы")
+        # CRUD для 3 таблиц
+        self.tab_sellers = CRUDTab(self.notebook, self.db, "Продавцы (SELLERS)", "sellers", ["ID", "FULL_NAME", "RETAIL_OUTLET_ID", "SALARY_RATE"],
+                                   "ID", [
+                                       {"col": "ID", "label": "ID", "type": "int"},
+                                       {"col": "FULL_NAME", "label": "ФИО"},
+                                       {"col": "RETAIL_OUTLET_ID", "label": "Точка", "type": "int"},
+                                       {"col": "SALARY_RATE", "label": "Ставка", "type": "number"}
+                                   ])
+        self.notebook.add(self.tab_sellers.frame, text="👤 Продавцы")
 
-        self.tab_customers = EntityTab(self.notebook, self.db, "Покупатели (CUSTOMERS)", "customers", "ID", [
-            {"col": "ID", "label": "ID", "type": "int"},
-            {"col": "FULL_NAME", "label": "ФИО"},
-            {"col": "CHARACTERISTICS", "label": "Характеристики"}
-        ])
-        self.notebook.add(self.tab_customers.frame, text="Покупатели")
+        self.tab_customers = CRUDTab(self.notebook, self.db, "Покупатели (CUSTOMERS)", "customers",
+                                     ["ID", "FULL_NAME", "CHARACTERISTICS"], "ID", [
+                                         {"col": "ID", "label": "ID", "type": "int"},
+                                         {"col": "FULL_NAME", "label": "ФИО"},
+                                         {"col": "CHARACTERISTICS", "label": "Характеристики"}
+                                     ])
+        self.notebook.add(self.tab_customers.frame, text="🛒 Покупатели")
 
-        self.tab_sales = EntityTab(self.notebook, self.db, "Продажи (SALES)", "sales", "ID", [
-            {"col": "ID", "label": "ID", "type": "int"},
-            {"col": "date", "label": "Дата"},
-            {"col": "PRODUCT_ID", "label": "Товар", "type": "int"},
-            {"col": "QUANTITY", "label": "Кол-во", "type": "number"},
-            {"col": "SALE_PRICE", "label": "Цена", "type": "number"},
-            {"col": "SELLER_ID", "label": "Продавец", "type": "int"},
-            {"col": "RETAIL_OUTLET_ID", "label": "Точка", "type": "int"},
-            {"col": "CUSTOMER_ID", "label": "Покупатель", "type": "int"}
-        ])
-        self.notebook.add(self.tab_sales.frame, text="Продажи")
+        self.tab_sales = CRUDTab(self.notebook, self.db, "Продажи (SALES)", "sales",
+                                 ["ID", "DATE", "PRODUCT_ID", "QUANTITY", "SALE_PRICE", "SELLER_ID", "RETAIL_OUTLET_ID", "CUSTOMER_ID"],
+                                 "ID", [
+                                     {"col": "ID", "label": "ID", "type": "int"},
+                                     {"col": "date", "label": "Дата"},
+                                     {"col": "PRODUCT_ID", "label": "Товар", "type": "int"},
+                                     {"col": "QUANTITY", "label": "Кол-во", "type": "number"},
+                                     {"col": "SALE_PRICE", "label": "Цена", "type": "number"},
+                                     {"col": "SELLER_ID", "label": "Продавец", "type": "int"},
+                                     {"col": "RETAIL_OUTLET_ID", "label": "Точка", "type": "int"},
+                                     {"col": "CUSTOMER_ID", "label": "Покупатель", "type": "int"}
+                                 ])
+        self.notebook.add(self.tab_sales.frame, text="💰 Продажи")
 
+        # Аудит
         self.tab_log = LogTab(self.notebook, self.db)
-        self.notebook.add(self.tab_log.frame, text="Журнал аудита")
+        self.notebook.add(self.tab_log.frame, text="📋 Журнал аудита")
 
+        # Отчет
         self.tab_report = ReportTab(self.notebook, self.db)
-        self.notebook.add(self.tab_report.frame, text="Отчет")
+        self.notebook.add(self.tab_report.frame, text="📊 Отчет")
 
     def connect_db(self):
-        """Устанавливает соединение с БД и загружает данные во все вкладки."""
         try:
             user = self.conn_vars["user"].get()
             password = self.conn_vars["password"].get()
@@ -617,16 +595,19 @@ class App:
             port = self.conn_vars["port"].get()
             service = self.conn_vars["service"].get()
             self.db.connect(user, password, host, port, service)
-            self.lbl_status.config(text="Подключено", fg=COLORS["success"])
+            self.lbl_status.config(text="✅ Подключено", fg=COLORS["success"])
             self.tab_sellers.load_data()
             self.tab_customers.load_data()
             self.tab_sales.load_data()
             self.tab_log.load_log()
-        except Exception:
-            messagebox.showerror("Ошибка подключения", traceback.format_exc())
-            self.lbl_status.config(text="Ошибка", fg=COLORS["danger"])
+        except Exception as e:
+            messagebox.showerror("Ошибка подключения", str(e))
+            self.lbl_status.config(text="❌ Ошибка", fg=COLORS["danger"])
 
 
+# ============================================================
+# Точка входа
+# ============================================================
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)

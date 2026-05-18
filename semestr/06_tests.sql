@@ -6,27 +6,35 @@ SET SERVEROUTPUT ON;
 ALTER SESSION SET NLS_TIMESTAMP_FORMAT = 'DD.MM.YYYY HH24:MI:SS';
 
 PROMPT >>> ============================================
-PROMPT >>> ДЕМО 1: CRUD через пакет + автологирование
+PROMPT >>> ДЕМО 1: Процедуры + автологирование
 PROMPT >>> ============================================
 
 DECLARE
-    v_id NUMBER;
+    v_seller_id NUMBER;
+    v_customer_id NUMBER;
+    v_sale_id NUMBER;
 BEGIN
-    -- INSERT seller
-    pkg_entity_crud.add_seller('Test Seller', 1, 50000, v_id);
-    DBMS_OUTPUT.PUT_LINE('Добавлен продавец, ID=' || v_id);
+    -- SELLERS: INSERT + UPDATE
+    add_seller('Test Seller', 1, 50000, v_seller_id);
+    DBMS_OUTPUT.PUT_LINE('Добавлен продавец, ID=' || v_seller_id);
+    upd_seller(v_seller_id, 'Test Seller Updated', 2, 55000);
+    DBMS_OUTPUT.PUT_LINE('Обновлен продавец, ID=' || v_seller_id);
 
-    -- UPDATE seller
-    pkg_entity_crud.upd_seller(v_id, 'Test Seller Updated', 2, 55000);
-    DBMS_OUTPUT.PUT_LINE('Обновлен продавец, ID=' || v_id);
+    -- CUSTOMERS: INSERT + DELETE
+    add_customer('Test Customer', '{"age":25}', v_customer_id);
+    DBMS_OUTPUT.PUT_LINE('Добавлен покупатель, ID=' || v_customer_id);
+    del_customer(v_customer_id);
+    DBMS_OUTPUT.PUT_LINE('Удален покупатель, ID=' || v_customer_id);
 
-    -- INSERT customer
-    pkg_entity_crud.add_customer('Test Customer', '{"age":25}', v_id);
-    DBMS_OUTPUT.PUT_LINE('Добавлен покупатель, ID=' || v_id);
+    -- SALES: INSERT + UPDATE + DELETE
+    add_sale(1, 2, 45, v_seller_id, 1, NULL, v_sale_id);
+    DBMS_OUTPUT.PUT_LINE('Добавлена продажа, ID=' || v_sale_id);
+    upd_sale(v_sale_id, 2, 3, 50, v_seller_id, 1, NULL);
+    DBMS_OUTPUT.PUT_LINE('Обновлена продажа, ID=' || v_sale_id);
+    del_sale(v_sale_id);
+    DBMS_OUTPUT.PUT_LINE('Удалена продажа, ID=' || v_sale_id);
 
-    -- DELETE customer
-    pkg_entity_crud.del_customer(v_id);
-    DBMS_OUTPUT.PUT_LINE('Удален покупатель, ID=' || v_id);
+    COMMIT;
 END;
 /
 
@@ -42,13 +50,12 @@ END;
 PROMPT >>> ============================================
 PROMPT >>> ДЕМО 3: Откат операции UPDATE
 PROMPT >>> ============================================
--- Предположим, последняя запись в логе с operation='UPDATE' имеет ID=N
--- Замените :log_id на реальный ID из вывода выше
 
--- Пример отката (раскомментируйте и подставьте ID):
+-- Пример отката (раскомментировать и подставить реальный ID):
 -- BEGIN
 --     pkg_audit.rollback_operation(:log_id);
 --     DBMS_OUTPUT.PUT_LINE('Операция откатана');
+--     COMMIT;
 -- END;
 -- /
 
@@ -59,10 +66,10 @@ PROMPT >>> ============================================
 DECLARE
     v_cur SYS_REFCURSOR;
     v_table_name VARCHAR2(30);
-    v_operation  VARCHAR2(10);
-    v_cnt        NUMBER;
+    v_operation VARCHAR2(10);
+    v_cnt NUMBER;
 BEGIN
-    DBMS_OUTPUT.PUT_LINE('--- Без флагов (по умолчанию) ---');
+    DBMS_OUTPUT.PUT_LINE('--- Без флагов ---');
     v_cur := pkg_audit.get_report(0, 0, 0);
     LOOP
         FETCH v_cur INTO v_table_name, v_operation, v_cnt;
@@ -71,7 +78,7 @@ BEGIN
     END LOOP;
     CLOSE v_cur;
 
-    DBMS_OUTPUT.PUT_LINE('--- Флаг 1: по названию сущности ---');
+    DBMS_OUTPUT.PUT_LINE('--- Флаг 1: по сущности ---');
     v_cur := pkg_audit.get_report(1, 0, 0);
     LOOP
         FETCH v_cur INTO v_table_name, v_operation, v_cnt;
@@ -95,14 +102,13 @@ PROMPT >>> ============================================
 PROMPT >>> Проверка содержимого AUDIT_LOG
 PROMPT >>> ============================================
 
-SELECT id,
-       table_name,
-       operation,
-       TO_CHAR(op_timestamp, 'DD.MM.YYYY HH24:MI:SS') as ts,
-       record_pk,
-       db_user
+SELECT id, table_name, operation,
+    TO_CHAR(op_timestamp, 'DD.MM.YYYY HH24:MI:SS') as ts,
+    record_pk, db_user
 FROM audit_log
 ORDER BY id DESC
 FETCH FIRST 20 ROWS ONLY;
+
+COMMIT;
 
 PROMPT >>> Тестирование завершено.

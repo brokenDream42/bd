@@ -140,6 +140,7 @@ ALTER TABLE sellers
     ADD CONSTRAINT fk_sellers_outlet
     FOREIGN KEY (retail_outlet_id) REFERENCES retail_outlets(id)
     ON DELETE CASCADE;
+    
 
 ALTER TABLE sections
     ADD CONSTRAINT fk_sections_outlet
